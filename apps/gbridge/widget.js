@@ -1,14 +1,14 @@
 (() => {
 
   const music = {
-    STOP = "stop",
-    PLAY = "play",
-    PAUSE = "pause"
+    STOP: "stop",
+    PLAY: "play",
+    PAUSE: "pause"
   }
 
   const muiscControl = {
-    NEXT = "next",
-    PREV = "previous"
+    NEXT: "next",
+    PREV: "previous"
   }
 
   var musicState = music.STOP;
@@ -19,7 +19,6 @@
     "track": ""
   };
 
-  // TODO: Animation auslagern
   var scrollPos = 0;
 
   function gb(j) {
