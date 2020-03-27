@@ -1,99 +1,103 @@
 (() => {
 
-  const music = {
-    STOP: "stop",
-    PLAY: "play",
-    PAUSE: "pause"
-  }
+  const gb = {
+    musicState: {
+      STOP: "stop",
+      PLAY: "play",
+      PAUSE: "pause"
+    },
 
-  const muiscControl = {
-    NEXT: "next",
-    PREV: "previous"
-  }
+    muiscControl: {
+      NEXT: "next",
+      PREV: "previous"
+    },
 
-  var musicState = music.STOP;
+    send: (message) => {
+      Bluetooth.println(JSON.stringify(message));
+    },
 
-  var musicInfo = {
-    "artist": "",
-    "album": "",
-    "track": ""
+    controlMusic: (operation) => {
+      send({ t: "music", n: operation });
+    },
+
+    reportBatteryLevel: () => {
+      send({ t: "status", bat: E.getBattery() });
+    },
   };
 
-  var scrollPos = 0;
+  const state = {
+    music: gb.musicState.STOP,
 
-  function gb(j) {
-    Bluetooth.println(JSON.stringify(j));
-  }
+    musicInfo: {
+      artist: "",
+      album: "",
+      track: ""
+    },
 
-  function gb_musicControl(operation) {
-    gb({ t: "music", n: operation });
-  }
+    scrollPos: 0,
+  };
 
-  function gb_reportBattery() {
-    gb({ t: "status", bat: E.getBattery() });
-  }
+  const notification = {
 
-  // Popover
-  function show(size, render) {
-    var oldMode = Bangle.getLCDMode();
-    Bangle.setLCDMode("direct");
-    g.setClipRect(0, 240, 239, 319);
-    g.setColor("#222222");
-    g.fillRect(1, 241, 238, 318);
-    render(320 - size);
-    g.setColor("#ffffff");
-    g.fillRect(0, 240, 1, 319);
-    g.fillRect(238, 240, 239, 319);
-    g.fillRect(2, 318, 238, 319);
-    Bangle.setLCDPower(1); // light up
-    Bangle.setLCDMode(oldMode); // clears cliprect
-    function anim() {
-      scrollPos -= 2;
-      if (scrollPos < -size) scrollPos = -size;
-      Bangle.setLCDOffset(scrollPos);
-      if (scrollPos > -size) setTimeout(anim, 10);
+    backgroundColor: "#222222",
+    frameColor: "#ffffff",
+    titelColor: "#40d040",
+    contentColor: "#ffffff",
+
+    show: (size, drawContent) => {
+      var oldMode = Bangle.getLCDMode();
+      Bangle.setLCDMode("direct");
+
+      g.setClipRect(0, 240, 239, 319);
+      g.setColor(backgroundColor);
+      g.fillRect(1, 241, 238, 318);
+
+      drawContent(320 - size);
+
+      g.setColor(frameColor);
+      g.fillRect(0, 240, 1, 319);
+      g.fillRect(238, 240, 239, 319);
+      g.fillRect(2, 318, 238, 319);
+
+      Bangle.setLCDPower(1); // light up
+      Bangle.setLCDMode(oldMode); // clears cliprect
+
+      function anim() {
+        state.scrollPos -= 2;
+        if (state.scrollPos < -size) state.scrollPos = -size;
+        Bangle.setLCDOffset(state.scrollPos);
+        if (state.scrollPos > -size) setTimeout(anim, 10);
+      }
+      anim();
+    },
+
+    hide: () => {
+      function anim() {
+        state.scrollPos += 4;
+        if (state.scrollPos > 0) state.scrollPos = 0;
+        Bangle.setLCDOffset(state.scrollPos);
+        if (state.scrollPos < 0) setTimeout(anim, 10);
+      }
+      anim();
     }
-    anim();
-  }
-
-  function hide() {
-    function anim() {
-      scrollPos += 4;
-      if (scrollPos > 0) scrollPos = 0;
-      Bangle.setLCDOffset(scrollPos);
-      if (scrollPos < 0) setTimeout(anim, 10);
-    }
-    anim();
-  }
-
-  // Touch control
-  Bangle.on('touch', function () {
-    if (scrollPos) {
-      hide();
-    }
-  });
-
-  Bangle.on('swipe', function (dir) {
-    if (musicState == music.PLAY) {
-      gb_musicControl(dir > 0 ? muiscControl.NEXT : muiscControl.PREV)
-    }
-  });
-
-  gb_reportBattery();
+  };
 
   function showNotification(src, title, body) {
-    show(80, function (y) {
+    notification.show(80, (y) => {
       // TODO: icon based on src?
       var x = 120;
       g.setFontAlign(0, 0);
+
       g.setFont("6x8", 1);
-      g.setColor("#40d040");
+      g.setColor(titelColor);
       g.drawString(src, x, y + 7);
-      g.setColor("#ffffff");
+
+      g.setColor(notification.contentColor);
       g.setFont("6x8", 2);
       g.drawString(title, x, y + 25);
+
       g.setFont("6x8", 1);
-      g.setColor("#ffffff");
+      g.setColor(notification.contentColor);
       // split text up a word boundaries
       var txt = body.split("\n");
       var MAXCHARS = 38;
@@ -116,62 +120,80 @@
   }
 
   function updateMusicInfo() {
-    if (musicState == music.PLAY)
-      show(40, function (y) {
-        g.setColor("#ffffff");
-        const icon = require("Storage").read("music-info-ico.img")
+    if (state.music == gb.musicState.PLAY) {
+      notification.show(40, (y) => {
+
+        g.setColor(notification.contentColor);
+        const icon = require("Storage").read("music-info-ico.img");
         g.drawImage(icon, 8, y + 8);
+
         g.setFontAlign(-1, -1);
         g.setFont("6x8", 1);
         var x = 40;
         g.setFont("4x6", 2);
-        g.setColor("#ffffff");
-        g.drawString(musicInfo.artist, x, y + 8);
+        g.setColor(notification.contentColor);
+        g.drawString(state.musicInfo.artist, x, y + 8);
+
         g.setFont("6x8", 1);
-        g.setColor("#ffffff");
-        g.drawString(musicInfo.track, x, y + 22);
+        g.setColor(notification.contentColor);
+        g.drawString(state.musicInfo.track, x, y + 22);
       });
-    if (musicState == music.PAUSE) {
-      hide();
+    } else {
+      notification.hide();
     }
   }
 
-  global.GB = function (event) {
+  global.GB = (event) => {
     switch (event.t) {
       case "notify":
         showNotification(event.src, event.title, event.body);
         break;
       case "musicinfo":
-        musicInfo = event;
+        state.musicInfo = event;
         break;
       case "musicstate":
-        musicState = event.state;
+        state.musicInfo = event.state;
         updateMusicInfo();
         break;
     }
   };
 
-  function drawWidgetIcon() {
+  // Touch control
+  Bangle.on("touch", () => {
+    if (state.scrollPos) {
+      hideFrame();
+    }
+  });
+
+  Bangle.on("swipe", (dir) => {
+    if (state.music == gb.musicState.PLAY) {
+      gb.controlMusic(dir > 0 ? gb.muiscControl.NEXT : gb.muiscControl.PREV);
+    }
+  });
+
+  gb.reportBatteryLevel();
+
+  function drawIcon() {
     g.setColor(-1);
 
-    const icon;
+    let icon;
     if (NRF.getSecurityStatus().connected) {
-      icon = require("Storage").read("widget-online-ico.img")
+      icon = require("Storage").read("widget-online-ico.img");
     } else {
-      icon = require("Storage").read("widget-offline-ico.img")
+      icon = require("Storage").read("widget-offline-ico.img");
     }
 
     g.drawImage(icon, this.x + 1, this.y + 1);
   }
 
-  function changed() {
+  function changedConnectionState() {
     WIDGETS["gbridgew"].draw();
     g.flip(); // turns screen on
   }
 
-  NRF.on('connected', changed);
-  NRF.on('disconnected', changed);
+  NRF.on("connected", changedConnectionState);
+  NRF.on("disconnected", changedConnectionState);
 
-  WIDGETS["gbridgew"] = { area: "tl", width: 24, draw: drawWidgetIcon };
+  WIDGETS["gbridgew"] = { area: "tl", width: 24, draw: drawIcon };
 
 })();
