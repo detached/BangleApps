@@ -10,4 +10,10 @@
   clock: null,           // a string for the default clock's name
   "12hour" : false,      // 12 or 24 hour clock?
   // welcomed : undefined/true (whether welcome app should show)
+  options: {
+    wakeOnTwist: true,
+    twistThreshold: 819.2,
+    twistMaxY: -800,
+    twistTimeout: 1000
+  }
 }
