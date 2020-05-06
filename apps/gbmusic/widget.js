@@ -27,7 +27,7 @@
 
   NRF.on("disconnected", draw);
 
-  WIDGETS["mywidget"] = {
+  WIDGETS["gbmusic"] = {
     area: "tl",
     width: 24,
     draw: draw

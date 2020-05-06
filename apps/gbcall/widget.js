@@ -86,7 +86,7 @@
     }
   });
 
-  WIDGETS["mywidget"] = {
+  WIDGETS["gbcall"] = {
     area: "tl",
     width: 24,
     draw: () => { }
