@@ -13,6 +13,19 @@ if (s.ble!==false) {
 if (s.blerepl===false) { // If not programmable, force terminal off Bluetooth
   if (s.log) Terminal.setConsole(true); // if showing debug, force REPL onto terminal
   else E.setConsole(null,{force:true}); // on new (2v05+) firmware we have E.setConsole which allows a 'null' console
+  /* If not programmable add our own handler for Bluetooth data
+  to allow Gadgetbridge commands to be received*/
+  Bluetooth.line="";
+  Bluetooth.on('data',function(d) {
+    var l = (Bluetooth.line + d).split("\n");
+    Bluetooth.line = l.pop();
+    l.forEach(n=>Bluetooth.emit("line",n));
+  });
+  Bluetooth.on('line',function(l) {
+    if (l.startsWith('\x10')) l=l.slice(1);
+    if (l.startsWith('GB({') && l.endsWith('})') && global.GB)
+      try { global.GB(JSON.parse(l.slice(3,-1))); } catch(e) {}
+  });
 } else {
   if (s.log && !NRF.getSecurityStatus().connected) Terminal.setConsole(); // if showing debug, put REPL on terminal (until connection)
   else Bluetooth.setConsole(true); // else if no debug, force REPL to Bluetooth
@@ -42,13 +55,14 @@ if (!s.timeout) Bangle.setLCDPower(1);
 E.setTimeZone(s.timezone);
 delete s;
 // Draw out of memory errors onto the screen
-E.on('errorFlag', function(errorFlags) {  g.reset(1).setColor("#ff0000").setFont("6x8").setFontAlign(0,1).drawString(errorFlags,g.getWidth()/2,g.getHeight()-1).flip();
-  print("Interpreter error:",errorFlags);
+E.on('errorFlag', function(errorFlags) {
+  g.reset(1).setColor("#ff0000").setFont("6x8").setFontAlign(0,1).drawString(errorFlags,g.getWidth()/2,g.getHeight()-1).flip();
+  print("Interpreter error:", errorFlags);
   E.getErrorFlags(); // clear flags so we get called next time
 });
 // stop users doing bad things!
 global.save = function() { throw new Error("You can't use save() on Bangle.js without overwriting the bootloader!"); }
 // Load *.boot.js files
-require('Storage').list(/\.boot\.js/).map(bootFile=>{
+require('Storage').list(/\.boot\.js/).forEach(bootFile=>{
   eval(require('Storage').read(bootFile));
 });
