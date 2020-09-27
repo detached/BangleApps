@@ -85,10 +85,4 @@
       hide();
     }
   });
-
-  WIDGETS["gbcall"] = {
-    area: "tl",
-    width: 24,
-    draw: () => { }
-  };
 })()

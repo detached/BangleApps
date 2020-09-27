@@ -4,9 +4,11 @@
 
   function draw() {
     if (NRF.getSecurityStatus().connected && playing) {
+      WIDGETS["gbmusic"].width = 24;
       g.setColor(-1).drawImage(require("heatshrink").decompress(atob("jEYwILIsEAj/ggP/AQ/8kEBwACRsEBwYaBw/gj4CBn4CCwfAj42Bhg/H")), this.x, this.y);
     } else {
       g.clearRect(this.x, this.y, 24, 24);
+      WIDGETS["gbmusic"].width = 0;
     }
   }
 
